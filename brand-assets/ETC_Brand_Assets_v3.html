@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ETC YouTube Banner v3 — Brand Matched</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#111; display:flex; flex-direction:column; align-items:center; padding:40px 20px; font-family:'Rajdhani',sans-serif; color:#e8e8f0; }
+  h1 { font-family:'Orbitron',monospace; font-size:14px; color:#00f5ff; letter-spacing:4px; margin-bottom:6px; }
+  p { font-size:12px; color:#4a4a6a; margin-bottom:24px; letter-spacing:1px; }
+  .canvas-wrap { border:1px solid rgba(0,245,255,0.15); margin-bottom:16px; }
+  canvas { display:block; max-width:100%; height:auto; }
+  .btn {
+    padding:10px 28px; background:#00f5ff; color:#000;
+    font-family:'Orbitron',monospace; font-size:10px; font-weight:700; letter-spacing:2px;
+    border:none; cursor:pointer;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    margin:6px;
+  }
+  .btn:hover { background:#fff; }
+  .btn-sec {
+    padding:10px 28px; background:transparent; color:#00f5ff;
+    font-family:'Orbitron',monospace; font-size:10px; font-weight:700; letter-spacing:2px;
+    border:1px solid rgba(0,245,255,0.35); cursor:pointer;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    margin:6px;
+  }
+  .note {
+    margin-top:20px; padding:12px 18px; background:rgba(0,245,255,0.04);
+    border:1px solid rgba(0,245,255,0.12); font-size:11px; color:#666;
+    line-height:1.7; max-width:860px; text-align:center;
+  }
+  .note strong { color:#ffd700; }
+  .controls {
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:24px;
+  }
+  .label { font-size:10px; color:#4a4a6a; letter-spacing:2px; margin-bottom:8px; font-family:'Orbitron',monospace; }
+</style>
+</head>
+<body>
+
+<h1>ETC YOUTUBE BANNER — v3</h1>
+<p>Brand-matched to TikTok Developer icon · 2560 × 1440px · Safe zone compliant</p>
+
+<div class="controls">
+  <button class="btn" onclick="dl('banner','ETC_YouTube_Banner_2560x1440_v3.png')">⬇ DOWNLOAD BANNER</button>
+  <button class="btn-sec" onclick="dl('pfp','ETC_Profile_PFP_800x800_v3.png')">⬇ DOWNLOAD PFP</button>
+  <button class="btn-sec" onclick="dl('watermark','ETC_Watermark_150x150_v3.png')">⬇ DOWNLOAD WATERMARK</button>
+  <button class="btn-sec" onclick="dl('platform','ETC_Platform_Banner_1500x500_v3.png')">⬇ PLATFORM BANNER</button>
+</div>
+
+<div class="label">YOUTUBE BANNER — 2560 × 1440</div>
+<div class="canvas-wrap">
+  <canvas id="banner" width="2560" height="1440"></canvas>
+</div>
+
+<div class="label" style="margin-top:24px;">PROFILE PIC — 800 × 800</div>
+<div class="canvas-wrap" style="max-width:300px;">
+  <canvas id="pfp" width="800" height="800"></canvas>
+</div>
+
+<div class="label" style="margin-top:24px;">PLATFORM BANNER — 1500 × 500</div>
+<div class="canvas-wrap">
+  <canvas id="platform" width="1500" height="500"></canvas>
+</div>
+
+<div class="note">
+  <strong>Color system matched to TikTok icon:</strong>
+  "EVOLVE" = Cyan (#00f5ff) · "THE" = Gold (#ffd700) · "COSMOS" = Cyan (#00f5ff) · Background = Deep black (#030308) · Grid overlay = Cyan at 3% · Orbital rings = Subtle background element
+</div>
+
+<canvas id="watermark" width="150" height="150" style="display:none;"></canvas>
+
+<script>
+// ── EXACT BRAND TOKENS FROM TIKTOK ICON ──────────────────────────────────────
+const T = {
+  bg:     '#030308',
+  cyan:   '#00f5ff',
+  gold:   '#ffd700',
+  purple: '#7b2fff',
+  white:  '#e8e8f0',
+};
+
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+function stars(ctx, w, h, n=180, seed=1) {
+  let s=seed;
+  const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};
+  for(let i=0;i<n;i++){
+    const x=r()*w,y=r()*h,rad=r()*1.1+0.2,a=r()*0.55+0.25;
+    ctx.beginPath();ctx.arc(x,y,rad,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fill();
+  }
+}
+function grid(ctx,w,h,cell=60,op=0.028){
+  ctx.strokeStyle=`rgba(0,245,255,${op})`;ctx.lineWidth=1;
+  for(let x=0;x<=w;x+=cell){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<=h;y+=cell){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+}
+function scanlines(ctx,w,h,op=0.02){
+  for(let y=0;y<h;y+=4){ctx.fillStyle=`rgba(0,0,0,${op})`;ctx.fillRect(0,y,w,2);}
+}
+function ring(ctx,cx,cy,r,color,op,lw=1,dash=0){
+  ctx.save();ctx.strokeStyle=color;ctx.globalAlpha=op;ctx.lineWidth=lw;
+  if(dash)ctx.setLineDash([dash,dash*.6]);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+}
+function gnode(ctx,x,y,r,color,glow=14){
+  const g=ctx.createRadialGradient(x,y,0,x,y,glow);
+  g.addColorStop(0,color+'cc');g.addColorStop(1,color+'00');
+  ctx.beginPath();ctx.arc(x,y,glow,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+}
+const OB=(sz,wt=900)=>`${wt} ${sz}px "Orbitron",monospace`;
+const RJ=(sz,wt=400)=>`${wt} ${sz}px "Rajdhani",sans-serif`;
+
+// ── YOUTUBE BANNER 2560×1440 ─────────────────────────────────────────────────
+function renderBanner(canvas){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  const cx=w/2,cy=h/2;
+
+  // Deep space bg
+  ctx.fillStyle=T.bg;ctx.fillRect(0,0,w,h);
+
+  // Subtle vertical grid lines (like TikTok icon)
+  grid(ctx,w,h,80,.025);
+
+  // Stars — sparse, not distracting
+  stars(ctx,w,h,220,42);
+
+  // Orbital rings — SUBTLE background, not hero element
+  // Large rings centered, low opacity
+  ring(ctx,cx,cy,h*.55,T.cyan,.08,1.5);
+  ring(ctx,cx,cy,h*.42,T.cyan,.1,1.5);
+  ring(ctx,cx,cy,h*.30,T.gold,.08,1);
+  ring(ctx,cx,cy,h*.68,T.purple,.05,1,12);
+
+  // Minimal nodes — 4 on main ring only
+  [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(a=>{
+    gnode(ctx,cx+Math.cos(a)*h*.42,cy+Math.sin(a)*h*.42,3.5,T.cyan,14);
+  });
+  // Center dot
+  gnode(ctx,cx,cy,5,'#ffffff',20);
+
+  // Very subtle center glow
+  const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,h*.25);
+  cg.addColorStop(0,'rgba(0,245,255,0.04)');cg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=cg;ctx.fillRect(0,0,w,h);
+
+  // ── WORDMARK — hardcoded safe zone layout ────────────────────────────────
+  // YouTube safe zone: 1546×423px centered → y: 508–931, x: 507–2053
+  // Layout budget (423px total height):
+  //   tagline  : 28px tall  → y center 534  (top 508 + 26)
+  //   divider  : 1px        → y 562
+  //   gap      : 14px
+  //   EVOLVE THE (110px font, cap ~80px) → y center 632
+  //   gap      : 16px
+  //   COSMOS (148px font, cap ~108px) → y center 794
+  //   gap      : 16px
+  //   divider  : 1px        → y 878
+  //   URL      : 24px tall  → y center 906  (bot 931 - 25)
+
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+
+  // Tagline
+  ctx.font = RJ(26, 300);
+  ctx.fillStyle = 'rgba(0,245,255,0.45)';
+  ctx.fillText('COGNITIVE EVOLUTION  ·  AI AUTOMATION', cx, 534);
+
+  // Top divider
+  const dlg = ctx.createLinearGradient(cx-300, 0, cx+300, 0);
+  dlg.addColorStop(0,   'rgba(0,245,255,0)');
+  dlg.addColorStop(0.5, 'rgba(0,245,255,0.2)');
+  dlg.addColorStop(1,   'rgba(0,245,255,0)');
+  ctx.strokeStyle = dlg; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx-300, 562); ctx.lineTo(cx+300, 562); ctx.stroke();
+
+  // ── Line 1: "EVOLVE" (cyan) + " THE" (gold) ─────────────────────────────
+  ctx.font = OB(110, 900);
+  ctx.textBaseline = 'middle';
+
+  // Measure both words at fs=110 to center them together
+  const eW = ctx.measureText('EVOLVE').width;
+  const tW = ctx.measureText('THE').width;
+  const wordGap = 42; // space between words
+  const line1TotalW = eW + wordGap + tW;
+  const line1X = cx - line1TotalW / 2;
+
+  // EVOLVE — cyan
+  ctx.textAlign = 'left';
+  ctx.fillStyle = T.cyan; ctx.shadowColor = T.cyan; ctx.shadowBlur = 24;
+  ctx.fillText('EVOLVE', line1X, 644);
+  ctx.shadowBlur = 0;
+
+  // THE — gold
+  ctx.fillStyle = T.gold; ctx.shadowColor = T.gold; ctx.shadowBlur = 20;
+  ctx.fillText('THE', line1X + eW + wordGap, 644);
+  ctx.shadowBlur = 0;
+
+  // ── Line 2: "COSMOS" (cyan) ──────────────────────────────────────────────
+  ctx.font = OB(148, 900);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = T.cyan; ctx.shadowColor = T.cyan; ctx.shadowBlur = 36;
+  ctx.fillText('COSMOS', cx, 802);
+  ctx.shadowBlur = 0;
+
+  // Bottom divider
+  const dlg2 = ctx.createLinearGradient(cx-280, 0, cx+280, 0);
+  dlg2.addColorStop(0,   'rgba(0,245,255,0)');
+  dlg2.addColorStop(0.3, 'rgba(123,47,255,0.35)');
+  dlg2.addColorStop(0.7, 'rgba(0,245,255,0.35)');
+  dlg2.addColorStop(1,   'rgba(0,245,255,0)');
+  ctx.strokeStyle = dlg2; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx-280, 876); ctx.lineTo(cx+280, 876); ctx.stroke();
+
+  // URL
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = RJ(24, 400);
+  ctx.fillStyle = 'rgba(0,245,255,0.28)';
+  ctx.fillText('evolvethecosmos.com', cx, 906);
+
+  scanlines(ctx,w,h,.018);
+}
+
+// ── PROFILE PFP 800×800 ──────────────────────────────────────────────────────
+function renderPFP(canvas){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  const cx=w/2,cy=h/2;
+
+  ctx.fillStyle=T.bg;ctx.fillRect(0,0,w,h);
+  grid(ctx,w,h,40,.03);
+  stars(ctx,w,h,80,77);
+
+  // Subtle rings
+  ring(ctx,cx,cy,w*.44,T.cyan,.25,1.5);
+  ring(ctx,cx,cy,w*.32,T.cyan,.35,2);
+  ring(ctx,cx,cy,w*.20,T.gold,.3,1.5);
+
+  [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(a=>{
+    gnode(ctx,cx+Math.cos(a)*w*.32,cy+Math.sin(a)*w*.32,3.5,T.cyan,13);
+  });
+  gnode(ctx,cx,cy,7,'#ffffff',22);
+
+  ctx.textAlign='center';ctx.textBaseline='middle';
+
+  // ETC in cyan
+  ctx.font=OB(110,900);
+  ctx.fillStyle=T.cyan;
+  ctx.shadowColor=T.cyan;ctx.shadowBlur=20;
+  ctx.fillText('ETC',cx,cy-20);
+  ctx.shadowBlur=0;
+
+  // Divider
+  const dg=ctx.createLinearGradient(cx-80,0,cx+80,0);
+  dg.addColorStop(0,'rgba(0,245,255,0)');
+  dg.addColorStop(.5,'rgba(123,47,255,0.6)');
+  dg.addColorStop(1,'rgba(0,245,255,0)');
+  ctx.strokeStyle=dg;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cx-80,cy+48);ctx.lineTo(cx+80,cy+48);ctx.stroke();
+
+  ctx.font=RJ(18,400);
+  ctx.fillStyle='rgba(0,245,255,0.38)';
+  ctx.fillText('EVOLVE THE COSMOS',cx,cy+80);
+
+  scanlines(ctx,w,h,.025);
+}
+
+// ── PLATFORM BANNER 1500×500 ─────────────────────────────────────────────────
+function renderPlatform(canvas){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+
+  ctx.fillStyle=T.bg;ctx.fillRect(0,0,w,h);
+  grid(ctx,w,h,50,.025);
+  stars(ctx,w,h,110,99);
+
+  // Orbital system — left
+  const cx=w*.2,cy=h*.5;
+  ring(ctx,cx,cy,h*.38,T.cyan,.35,2);
+  ring(ctx,cx,cy,h*.25,T.gold,.3,1.5);
+  ring(ctx,cx,cy,h*.52,T.purple,.12,1,5);
+  [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(a=>{
+    gnode(ctx,cx+Math.cos(a)*h*.38,cy+Math.sin(a)*h*.38,3,T.cyan,12);
+  });
+  gnode(ctx,cx,cy,5,'#ffffff',18);
+
+  // Divider
+  ctx.strokeStyle='rgba(0,245,255,0.13)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(w*.39,h*.15);ctx.lineTo(w*.39,h*.85);ctx.stroke();
+
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  const tx=w*.43;
+
+  // Tagline
+  ctx.font=RJ(16,400);ctx.fillStyle='rgba(0,245,255,0.4)';
+  ctx.fillText('COGNITIVE EVOLUTION  ·  AI AUTOMATION',tx,h*.22);
+
+  // EVOLVE — cyan
+  ctx.font=OB(58,900);ctx.fillStyle=T.cyan;
+  ctx.shadowColor=T.cyan;ctx.shadowBlur=15;
+  ctx.fillText('EVOLVE',tx,h*.43);
+  ctx.shadowBlur=0;
+
+  // THE — gold (same line, offset)
+  const evolveW=ctx.measureText('EVOLVE').width;
+  ctx.fillStyle=T.gold;
+  ctx.shadowColor=T.gold;ctx.shadowBlur=12;
+  ctx.fillText(' THE',tx+evolveW,h*.43);
+  ctx.shadowBlur=0;
+
+  // COSMOS — cyan
+  ctx.font=OB(72,900);ctx.fillStyle=T.cyan;
+  ctx.shadowColor=T.cyan;ctx.shadowBlur=22;
+  ctx.fillText('COSMOS',tx,h*.72);
+  ctx.shadowBlur=0;
+
+  // Divider + URL
+  const dg=ctx.createLinearGradient(tx,0,tx+380,0);
+  dg.addColorStop(0,'rgba(123,47,255,0.5)');dg.addColorStop(1,'rgba(0,245,255,0)');
+  ctx.strokeStyle=dg;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(tx,h*.83);ctx.lineTo(tx+380,h*.83);ctx.stroke();
+
+  ctx.font=RJ(14,400);ctx.fillStyle='rgba(0,245,255,0.27)';
+  ctx.fillText('evolvethecosmos.com',tx,h*.9);
+
+  scanlines(ctx,w,h,.02);
+}
+
+// ── WATERMARK 150×150 ────────────────────────────────────────────────────────
+function renderWatermark(canvas){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  const cx=w/2,cy=h/2;
+
+  ctx.fillStyle='rgba(3,3,8,0.85)';ctx.fillRect(0,0,w,h);
+  ring(ctx,cx,cy,w*.38,T.cyan,.55,2);
+  ring(ctx,cx,cy,w*.26,T.gold,.45,1.5);
+  [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(a=>{
+    gnode(ctx,cx+Math.cos(a)*w*.38,cy+Math.sin(a)*w*.38,2,T.cyan,7);
+  });
+  gnode(ctx,cx,cy,4,'#ffffff',12);
+
+  ctx.textAlign='center';ctx.textBaseline='middle';
+
+  // Measure each letter for precise positioning
+  ctx.font=OB(24,900);
+  const eW=ctx.measureText('E').width;
+  const tW=ctx.measureText('T').width;
+  const cW=ctx.measureText('C').width;
+  const spacing=3;
+  const totalW=eW+spacing+tW+spacing+cW;
+  let lx=cx-totalW/2;
+  const ly=cy+w*.2;
+
+  // E — cyan
+  ctx.textAlign='left';
+  ctx.fillStyle=T.cyan;ctx.shadowColor=T.cyan;ctx.shadowBlur=8;
+  ctx.fillText('E',lx,ly);ctx.shadowBlur=0;
+  lx+=eW+spacing;
+
+  // T — gold
+  ctx.fillStyle=T.gold;ctx.shadowColor=T.gold;ctx.shadowBlur=8;
+  ctx.fillText('T',lx,ly);ctx.shadowBlur=0;
+  lx+=tW+spacing;
+
+  // C — cyan
+  ctx.fillStyle=T.cyan;ctx.shadowColor=T.cyan;ctx.shadowBlur=8;
+  ctx.fillText('C',lx,ly);ctx.shadowBlur=0;
+
+  scanlines(ctx,w,h,.03);
+}
+
+// ── DOWNLOAD HELPER ──────────────────────────────────────────────────────────
+function dl(id,filename){
+  const canvas=document.getElementById(id);
+  const a=document.createElement('a');
+  a.download=filename;a.href=canvas.toDataURL('image/png');a.click();
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────────────────
+document.fonts.ready.then(()=>{
+  renderBanner(document.getElementById('banner'));
+  renderPFP(document.getElementById('pfp'));
+  renderPlatform(document.getElementById('platform'));
+  renderWatermark(document.getElementById('watermark'));
+});
+</script>
+</body>
+</html>
